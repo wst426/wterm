@@ -1,5 +1,10 @@
+import os from "os";
 import path from "path";
-import { app, BrowserWindow } from "electron";
+import process from "process";
+import { app, BrowserWindow, ipcMain } from "electron";
+import { spawn } from "node-pty";
+
+const shell = os.platform() === 'win32' ? 'powershell.exe' : 'sh';
 
 const createWindow = () => {
   const win = new BrowserWindow({
@@ -16,6 +21,23 @@ const createWindow = () => {
     width: win.getContentBounds().width,
     height: win.getContentBounds().height
   });
+
+  const pty = spawn(shell, [], {
+    name: "wterm",
+    cols: 80,
+    rows: 30,
+    cwd: process.env.HOME,
+    env: process.env as any
+  });
+
+  pty.onData(data => {
+    win.webContents.send("onData", data);
+  });
+
+  ipcMain.on("onInput", (e, arg) => {
+    pty.write(arg);
+  });
+
   win.on("resize", () => {
     win.webContents.send("onSizeChange", {
       width: win.getContentBounds().width,
