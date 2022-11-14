@@ -1,3 +1,5 @@
+import Terminal from "./terminal";
+
 class WTerm {
   readonly el: HTMLCanvasElement;
   readonly ctx: CanvasRenderingContext2D;
@@ -27,8 +29,12 @@ const render = (ctx: CanvasRenderingContext2D, width: number, height: number) =>
   ctx.font = "14px Consolas";
 }
 
+let width = 0;
+let height = 0;
+
 (window as any).api.handleSizeChange((e: Electron.IpcRendererEvent, arg: any) => {
-  const { width, height }: { width: number, height: number } = arg;
+  width = arg.width;
+  height = arg.height;
   const dpr = window.devicePixelRatio;
   wterm.el.width = width;
   wterm.el.height = height;
@@ -40,10 +46,15 @@ const render = (ctx: CanvasRenderingContext2D, width: number, height: number) =>
   render(wterm.ctx, width, height);
 });
 
-let lineNumber = 1;
+const terminal = new Terminal(80, 30);
+
 (window as any).api.handleData((e: Electron.IpcRendererEvent, arg: any) => {
-  const lines: string[] = arg.split("\r\n");
-  for (const line of lines) {
+  let lineNumber = 1;
+  terminal.input(arg);
+  wterm.ctx.fillStyle = "black";
+  wterm.ctx.fillRect(0, 0, width, height);
+  for (const line of terminal.getContent()) {
+    wterm.ctx.fillStyle = "white";
     wterm.ctx.fillText(line, 0, 14 * lineNumber);
     lineNumber += 1;
   }
